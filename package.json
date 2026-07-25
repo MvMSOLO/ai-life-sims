@@ -4,10 +4,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "dev": "bunx --bun vite dev",
+    "build": "bunx --bun vite build",
+    "build:dev": "bunx --bun vite build --mode development",
+    "preview": "bunx --bun vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
