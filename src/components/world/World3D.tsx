@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { housePosition, useSim, WORLD, deskPosition } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Sky } from "@react-three/drei";
 import * as THREE from "three";
@@ -190,8 +191,8 @@ function Taxi({ taxiId }: { taxiId: string }) {
 }
 
 export default function World3D() {
-  const agentIds = useSim((s) => Object.keys(s.agents));
-  const taxiIds = useSim((s) => Object.keys(s.taxis));
+  const agentIds = useSim(useShallow((s) => Object.keys(s.agents)));
+  const taxiIds = useSim(useShallow((s) => Object.keys(s.taxis)));
   const count = agentIds.length;
 
   const lights = useMemo(

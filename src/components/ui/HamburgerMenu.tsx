@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSim } from "@/lib/store";
 import { useNavigate } from "@tanstack/react-router";
+import { useShallow } from "zustand/react/shallow";
 
 export default function HamburgerMenu() {
   const [open, setOpen] = useState(false);
@@ -8,8 +9,8 @@ export default function HamburgerMenu() {
   const [cmdInput, setCmdInput] = useState("");
   const navigate = useNavigate();
 
-  const agents = useSim((s) => Object.values(s.agents));
-  const messages = useSim((s) => s.messages);
+  const agents = useSim(useShallow((s) => Object.values(s.agents)));
+  const messages = useSim(useShallow((s) => s.messages));
   const select = useSim((s) => s.selectAgent);
 
   useEffect(() => {

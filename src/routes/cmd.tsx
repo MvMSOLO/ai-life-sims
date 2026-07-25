@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useSim } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
+import { createAgent, deleteAgent } from "@/lib/agents.functions";
 import type { Trait } from "@/lib/types";
 
 export const Route = createFileRoute("/cmd")({
@@ -16,11 +18,11 @@ export const Route = createFileRoute("/cmd")({
 
 const MODELS = [
   "google/gemini-2.5-flash",
-  "google/gemini-3.1-flash-lite",
-  "openai/gpt-5.4-mini",
-  "openai/gpt-5.4-nano",
-  "openrouter/free/llama-3.1-8b",
-  "openrouter/free/mistral-7b",
+  "google/gemini-flash-1.5",
+  "openai/gpt-4o-mini",
+  "openai/gpt-4.1-nano",
+  "openrouter/meta-llama/llama-3.1-8b-instruct:free",
+  "openrouter/mistralai/mistral-7b-instruct:free",
   "anthropic/claude-3.5-haiku",
   "custom",
 ];
@@ -28,9 +30,7 @@ const MODELS = [
 const TRAITS: Trait[] = ["impatient", "friendly", "quiet", "energetic", "sarcastic"];
 
 function CmdPage() {
-  const agents = useSim((s) => Object.values(s.agents));
-  const addAgent = useSim((s) => s.addAgent);
-  const removeAgent = useSim((s) => s.removeAgent);
+  const agents = useSim(useShallow((s) => Object.values(s.agents)));
   const simSpeed = useSim((s) => s.simSpeed);
   const setSimSpeed = useSim((s) => s.setSimSpeed);
   const paused = useSim((s) => s.paused);
@@ -42,21 +42,41 @@ function CmdPage() {
   const [apiKey, setApiKey] = useState("");
   const [persona, setPersona] = useState("");
   const [traits, setTraits] = useState<Trait[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !persona.trim()) return;
-    addAgent({
-      name: name.trim(),
-      model: model === "custom" ? customModel.trim() || "custom" : model,
-      apiKey: apiKey.trim() || undefined,
-      persona: persona.trim(),
-      traits,
-    });
-    setName("");
-    setApiKey("");
-    setPersona("");
-    setTraits([]);
+    setLoading(true);
+    setError(null);
+    try {
+      await createAgent({
+        data: {
+          name: name.trim(),
+          model: model === "custom" ? customModel.trim() || "custom" : model,
+          apiKey: apiKey.trim() || undefined,
+          persona: persona.trim(),
+          traits,
+        },
+      });
+      setName("");
+      setApiKey("");
+      setPersona("");
+      setTraits([]);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await deleteAgent({ data: { id } });
+    } catch (err) {
+      console.error("Failed to remove agent:", err);
+    }
   };
 
   return (
@@ -121,7 +141,7 @@ function CmdPage() {
 
             <div>
               <label className="mb-1 block text-xs opacity-70">
-                API Key (optional — leave empty to use default gateway)
+                API Key (optional — leave empty to use OPENROUTER_API_KEY env)
               </label>
               <input
                 value={apiKey}
@@ -131,7 +151,7 @@ function CmdPage() {
                 placeholder="sk-or-... or leave empty"
               />
               <p className="mt-1 text-[11px] opacity-50">
-                OpenRouter free models work without a paid key.
+                Set OPENROUTER_API_KEY in Replit Secrets for shared fallback.
               </p>
             </div>
 
@@ -177,11 +197,18 @@ function CmdPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="rounded bg-red-500/20 px-3 py-2 text-xs text-red-300">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full rounded bg-blue-500 py-2 text-sm font-semibold hover:bg-blue-600"
+              disabled={loading}
+              className="w-full rounded bg-blue-500 py-2 text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
             >
-              Spawn agent into world
+              {loading ? "Spawning…" : "Spawn agent into world"}
             </button>
           </form>
 
@@ -191,7 +218,7 @@ function CmdPage() {
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block text-xs opacity-70">
-                    Simulation speed: {simSpeed.toFixed(1)}x
+                    Simulation speed: {simSpeed.toFixed(1)}x (client display only)
                   </label>
                   <input
                     type="range"
@@ -209,7 +236,7 @@ function CmdPage() {
                     paused ? "bg-green-500" : "bg-white/10 hover:bg-white/20"
                   }`}
                 >
-                  {paused ? "▶ Resume" : "⏸ Pause"}
+                  {paused ? "▶ Resume" : "⏸ Pause (display only)"}
                 </button>
               </div>
             </div>
@@ -233,7 +260,7 @@ function CmdPage() {
                       </div>
                     </div>
                     <button
-                      onClick={() => removeAgent(a.id)}
+                      onClick={() => handleRemove(a.id)}
                       className="rounded bg-red-500/20 px-2 py-1 text-xs text-red-300 hover:bg-red-500/30"
                     >
                       Remove
@@ -241,18 +268,19 @@ function CmdPage() {
                   </div>
                 ))}
                 {agents.length === 0 && (
-                  <div className="text-xs opacity-50">No agents yet.</div>
+                  <div className="text-xs opacity-50">No agents yet. Add one above!</div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="mt-6 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-xs text-yellow-200/80">
-          <strong>Note:</strong> Current build runs on a client-side mock
-          simulation. Backend (persistence, real LLM calls, taxi state machine,
-          silence engine) is described in <code>promptforyou.md</code> for the
-          next agent to implement.
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 text-xs text-blue-200/80">
+              <strong>Public API:</strong> POST <code>/api/public/agent</code>
+              <br />
+              Commands: <code>join</code>, <code>speak</code>, <code>leave</code>, <code>state</code>
+              <br />
+              SSE stream: <code>GET /api/stream</code>
+            </div>
+          </div>
         </div>
       </div>
     </div>

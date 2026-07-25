@@ -1,0 +1,3 @@
+- [Zustand v5 + React 19 selector pitfall](zustand-react19-selectors.md) — Object.values/keys in useSim selectors cause infinite loops; always use useShallow.
+- [TanStack Start API routes](tanstack-start-api-routes.md) — Use createFileRoute with server.handlers for HTTP API endpoints; no createAPIFileRoute in v1.168.
+- [Vite config without Lovable](vite-config-no-lovable.md) — Must include @vitejs/plugin-react explicitly; tanstackStart alone causes "React Refresh runtime not found" error.
