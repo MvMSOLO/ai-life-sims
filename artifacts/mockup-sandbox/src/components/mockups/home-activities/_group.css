@@ -1,0 +1,362 @@
+/* Base container for the scene */
+.scene-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+/* Base agent elements */
+.agent-head {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #22d3ee; /* cyan-400 */
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6), inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.agent-body {
+  width: 36px;
+  height: 52px;
+  border-radius: 18px;
+  background: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 -5px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+.scene-props {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 1. In Bathroom (Bathroomda) */
+.anim-bathroom .agent-container {
+  transform: translateY(10px);
+}
+.anim-bathroom .scene-props::before {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 45px;
+  border: 2px solid #64748b;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  background: rgba(100, 116, 139, 0.15);
+  box-shadow: inset 0 -10px 20px rgba(34, 211, 238, 0.15);
+  z-index: 20;
+}
+.anim-bathroom .scene-props::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  right: 25px;
+  width: 20px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  filter: blur(4px);
+  animation: float-steam-bath 3s infinite ease-in-out alternate;
+}
+
+/* 2. Sleeping (Uxlayapti) */
+.anim-sleeping .agent-container {
+  transform: rotate(-90deg) translateX(-15px);
+}
+.anim-sleeping .agent-head {
+  background: #818cf8; /* indigo-400 */
+  box-shadow: 0 0 12px rgba(129, 140, 248, 0.6);
+}
+.anim-sleeping .scene-props::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 65px;
+  background: #1e1e28;
+  border: 1px solid #333344;
+  border-radius: 12px;
+  box-shadow: inset 0 20px 20px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+.anim-sleeping .scene-props::after {
+  content: 'Z z z';
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  color: #a78bfa;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 14px;
+  animation: float-z 4s infinite linear;
+}
+
+/* 3. Phone Scrolling */
+.anim-phone .agent-container {
+  transform: translateY(5px);
+}
+.anim-phone .scene-props::after {
+  content: '';
+  position: absolute;
+  top: 55px;
+  left: 65px;
+  width: 14px;
+  height: 22px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 0 20px #60a5fa, inset 0 0 8px #fff;
+  z-index: 20;
+  animation: phone-glow 2s infinite alternate;
+  transform: rotate(-15deg);
+}
+
+/* 4. Getting Dressed */
+.anim-dressing .scene-props::before {
+  content: '👕';
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-size: 24px;
+  animation: pop-item 2s infinite alternate;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+}
+.anim-dressing .scene-props::after {
+  content: '👖';
+  position: absolute;
+  bottom: 25px;
+  right: 15px;
+  font-size: 24px;
+  animation: pop-item 2s infinite alternate-reverse;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+}
+
+/* 5. Cooking */
+.anim-cooking .agent-container {
+  transform: translateX(-15px);
+}
+.anim-cooking .scene-props::before {
+  content: '';
+  position: absolute;
+  bottom: 30px;
+  right: 25px;
+  width: 35px;
+  height: 18px;
+  background: #334155;
+  border-radius: 4px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), 0 5px 10px rgba(0,0,0,0.3);
+}
+.anim-cooking .scene-props::after {
+  content: '';
+  position: absolute;
+  bottom: 50px;
+  right: 35px;
+  width: 15px;
+  height: 35px;
+  background: linear-gradient(to top, rgba(255,255,255,0.5), transparent);
+  filter: blur(3px);
+  animation: steam-rise 2.5s infinite;
+}
+
+/* 6. Watching TV */
+.anim-tv .agent-container {
+  transform: translateX(-25px);
+}
+.anim-tv .scene-props::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 60px;
+  background: #0f172a;
+  border: 2px solid #1e293b;
+  border-radius: 6px;
+  box-shadow: -15px 0 30px rgba(56, 189, 248, 0.3);
+  animation: tv-flicker 3s infinite;
+}
+.anim-tv .agent-head {
+  animation: tv-head-glow 3s infinite;
+}
+
+/* 7. Relaxing / Yoga */
+.anim-relaxing .agent-container {
+  transform: translateY(22px);
+}
+.anim-relaxing .agent-body {
+  height: 28px;
+  width: 44px;
+  border-radius: 14px;
+}
+.anim-relaxing .agent-head {
+  background: #f472b6; /* pink-400 */
+  box-shadow: 0 0 15px rgba(244, 114, 182, 0.6);
+  animation: float-head 3s infinite ease-in-out alternate;
+}
+.anim-relaxing .scene-props::before {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 8px;
+  background: #831843; 
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(244, 114, 182, 0.3);
+}
+
+/* 8. Arrived Home */
+.anim-arrived .agent-container {
+  transform: translateX(15px);
+  animation: walk-in 3s infinite alternate;
+}
+.anim-arrived .scene-props::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 12px;
+  height: 90px;
+  background: #7c3aed;
+  border-radius: 3px;
+  box-shadow: 5px 0 20px rgba(139, 92, 246, 0.4);
+}
+
+/* 9. Taxi */
+.anim-taxi .agent-container {
+  transform: translateX(-15px);
+}
+.anim-taxi .scene-props::before {
+  content: '';
+  position: absolute;
+  top: 45px;
+  right: 45px;
+  width: 10px;
+  height: 15px;
+  background: #f59e0b;
+  box-shadow: 0 0 15px #fbbf24;
+  border-radius: 3px;
+  animation: raise-arm 1.5s infinite alternate;
+  z-index: 20;
+}
+.anim-taxi .scene-props::after {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, #334155 0, #334155 15px, transparent 15px, transparent 30px);
+}
+
+/* 10. Commuting */
+.anim-commuting .agent-container {
+  animation: commute-walk 2s infinite linear;
+}
+.anim-commuting .scene-props::before {
+  content: '💼';
+  position: absolute;
+  top: 55px;
+  left: 70px;
+  font-size: 20px;
+  animation: swing-bag 2s infinite alternate;
+  z-index: 20;
+}
+
+/* Keyframes */
+@keyframes float-steam-bath {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { transform: translateY(-20px) scale(1.5); opacity: 0; }
+}
+
+@keyframes float-z {
+  0% { transform: translate(0, 0) scale(0.8); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(30px, -50px) scale(1.5); opacity: 0; }
+}
+
+@keyframes phone-glow {
+  0% { box-shadow: 0 0 15px #38bdf8, inset 0 0 8px #fff; }
+  100% { box-shadow: 0 0 35px #a855f7, inset 0 0 12px #fff; }
+}
+
+@keyframes pop-item {
+  0% { transform: scale(0.9) translateY(0) rotate(-10deg); opacity: 0.6; }
+  100% { transform: scale(1.1) translateY(-8px) rotate(10deg); opacity: 1; }
+}
+
+@keyframes steam-rise {
+  0% { transform: translateY(0) scaleX(1); opacity: 0.7; }
+  100% { transform: translateY(-30px) scaleX(2.5); opacity: 0; }
+}
+
+@keyframes tv-flicker {
+  0%, 100% { box-shadow: -15px 0 30px rgba(56, 189, 248, 0.2); }
+  33% { box-shadow: -20px 0 40px rgba(139, 92, 246, 0.4); }
+  66% { box-shadow: -15px 0 25px rgba(236, 72, 153, 0.3); }
+}
+
+@keyframes tv-head-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.6); }
+  33% { box-shadow: 0 0 18px rgba(167, 139, 250, 0.8); }
+  66% { box-shadow: 0 0 15px rgba(244, 114, 182, 0.7); }
+}
+
+@keyframes float-head {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+@keyframes walk-in {
+  0% { transform: translateX(35px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(-5px); opacity: 0; }
+}
+
+@keyframes raise-arm {
+  0% { transform: translateY(0) rotate(0); }
+  100% { transform: translateY(-12px) rotate(20deg); }
+}
+
+@keyframes commute-walk {
+  0% { transform: translateX(-40px) translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  25% { transform: translateX(-20px) translateY(-5px); }
+  50% { transform: translateX(0) translateY(0); }
+  75% { transform: translateX(20px) translateY(-5px); }
+  90% { opacity: 1; }
+  100% { transform: translateX(40px) translateY(0); opacity: 0; }
+}
+
+@keyframes swing-bag {
+  0% { transform: translateX(-40px) rotate(-20deg); }
+  100% { transform: translateX(40px) rotate(20deg); }
+}

@@ -1,0 +1,94 @@
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes driveDown {
+  0% { transform: translateY(-400px) translateZ(5px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(400px) translateZ(5px); opacity: 0; }
+}
+
+@keyframes driveUp {
+  0% { transform: translateY(400px) translateZ(5px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-400px) translateZ(5px); opacity: 0; }
+}
+
+@keyframes dashScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 80px; }
+}
+
+.scene-wrapper {
+  perspective: 2000px;
+  overflow: hidden;
+}
+
+.world-plane {
+  transform: scale(var(--scale, 1)) rotateX(60deg) rotateZ(-45deg);
+  transform-style: preserve-3d;
+}
+
+@media (max-width: 1024px) {
+  .world-plane {
+    --scale: 0.8;
+  }
+}
+@media (max-width: 768px) {
+  .world-plane {
+    --scale: 0.5;
+  }
+}
+
+.billboard {
+  transform: translateZ(var(--z, 0px)) rotateZ(45deg) rotateX(-60deg);
+  transform-style: preserve-3d;
+}
+
+.glass-building-face {
+  background: rgba(10, 15, 30, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
+  position: absolute;
+}
+
+.glass-building-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 255, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.house-face {
+  background-color: #111827;
+  border: 1px solid #1f2937;
+  background-image: radial-gradient(circle at center, currentColor 1px, transparent 2px);
+  background-size: 15px 15px;
+  background-position: center;
+}
+
+.neon-roof {
+  box-shadow: inset 0 0 30px currentColor, 0 0 10px currentColor;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.neon-text {
+  text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 40px currentColor;
+}
+
+.agent-bob {
+  animation: float 3s infinite ease-in-out;
+  transform-style: preserve-3d;
+}
