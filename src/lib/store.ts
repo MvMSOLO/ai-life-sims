@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Agent, ChatMessage, Taxi, Trait } from "./types";
+import type { Agent, ChatMessage, DirectMessage, Job, Taxi, Trait, MemoryEntry } from "./types";
 
 const OFFICE_POS: [number, number, number] = [-25, 0, 0];
 const HOUSE_START_X = 25;
@@ -10,9 +10,13 @@ export const WORLD = {
   officeDoor: [-20, 0, 0] as [number, number, number],
   taxiPickupOffice: [-18, 0, 4] as [number, number, number],
   taxiPickupHome: [22, 0, 4] as [number, number, number],
+  taxiPickupCafe: [8, 0, 4] as [number, number, number],
+  cafeCenter: [8, 0, -12] as [number, number, number],
+  parkCenter: [-8, 0, -14] as [number, number, number],
+  bankCenter: [18, 0, -12] as [number, number, number],
   roadY: 0.05,
-  roadSpawn: [-40, 0, 4] as [number, number, number],
-  roadEnd: [40, 0, 4] as [number, number, number],
+  roadSpawn: [-45, 0, 4] as [number, number, number],
+  roadEnd: [45, 0, 4] as [number, number, number],
 };
 
 export function deskPosition(index: number): [number, number, number] {
@@ -31,171 +35,117 @@ export function houseBedPosition(index: number): [number, number, number] {
   return [p[0], 0.5, p[2] - 1];
 }
 
+export function cafeSeatPosition(index: number): [number, number, number] {
+  const [cx, , cz] = WORLD.cafeCenter;
+  const cols = 3;
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+  return [cx - 2 + col * 2, 0, cz - 1 + row * 2];
+}
+
+export function parkSpotPosition(index: number): [number, number, number] {
+  const [cx, , cz] = WORLD.parkCenter;
+  const angle = (index * 137.5 * Math.PI) / 180;
+  const r = 2 + (index % 3);
+  return [cx + Math.cos(angle) * r, 0, cz + Math.sin(angle) * r];
+}
+
 const COLORS = [
   "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6",
   "#ec4899", "#14b8a6", "#f97316", "#06b6d4", "#84cc16",
 ];
 
-// Minimal DTO shape from server (matches AgentDTO in agents.functions.ts)
-interface ServerAgent {
-  id: string;
-  name: string;
-  color: string;
-  model: string;
-  persona: string;
-  traits: string[];
-  energy: number;
-  boredom: number;
-  social: number;
-  wallet: number;
-  state: string;
-  position: [number, number, number];
-  targetPosition: [number, number, number];
-  deskIndex: number;
-  houseIndex: number;
-  isTyping: boolean;
-  createdAt: number;
-}
-
-interface ServerMessage {
-  id: string;
-  agentId: string;
-  text: string;
-  ts: number;
-  replyTo: string | null;
-  reactions: { agentId: string; emoji: string }[];
-}
-
-interface ServerTaxi {
-  id: string;
-  agentId: string;
-  position: [number, number, number];
-  target: [number, number, number];
-  phase: string;
-}
+// Job → schedule/economy
+export const JOB_INFO: Record<Job, { emoji: string; salary: number; rent: number; label: string }> = {
+  dev:     { emoji: "💻", salary: 90,  rent: 30, label: "Developer" },
+  doctor:  { emoji: "🩺", salary: 140, rent: 40, label: "Doctor" },
+  ceo:     { emoji: "👔", salary: 240, rent: 70, label: "CEO" },
+  barista: { emoji: "☕", salary: 45,  rent: 18, label: "Barista" },
+  banker:  { emoji: "🏦", salary: 110, rent: 45, label: "Banker" },
+  artist:  { emoji: "🎨", salary: 55,  rent: 22, label: "Artist" },
+};
 
 interface State {
   agents: Record<string, Agent>;
   messages: ChatMessage[];
+  dms: DirectMessage[];
   taxis: Record<string, Taxi>;
   selectedAgentId: string | null;
   simSpeed: number;
   paused: boolean;
+  // World clock
+  worldMinutes: number; // total minutes elapsed in-game (0 = Monday 08:00)
+  startedAt: number;
 
-  // Hydrate store from server snapshot
-  setWorldFromServer: (
-    agents: ServerAgent[],
-    messages: ServerMessage[],
-    taxis: ServerTaxi[]
-  ) => void;
-
-  // Local-only helpers (kept for compatibility with World3D / AgentInspector)
   addAgent: (input: {
     name: string;
     model: string;
     apiKey?: string;
     persona: string;
     traits: Trait[];
+    job?: Job;
   }) => Agent;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, patch: Partial<Agent>) => void;
+  pushMemory: (id: string, entry: MemoryEntry) => void;
   addMessage: (m: Omit<ChatMessage, "id" | "ts" | "reactions">) => void;
   addReaction: (msgId: string, agentId: string, emoji: string) => void;
-  spawnTaxi: (agentId: string) => void;
+  sendDM: (fromId: string, toId: string, text: string) => void;
+  markDMsRead: (agentId: string, withId: string) => void;
+  spawnTaxi: (agentId: string, target: [number, number, number], phase: Taxi["phase"]) => void;
   updateTaxi: (id: string, patch: Partial<Taxi>) => void;
   removeTaxi: (id: string) => void;
   selectAgent: (id: string | null) => void;
   setSimSpeed: (s: number) => void;
   setPaused: (p: boolean) => void;
+  tickClock: (dtMinutes: number) => void;
+  adjustAffinity: (aId: string, bName: string, delta: number) => void;
 }
 
 let agentCounter = 0;
 let msgCounter = 0;
+let dmCounter = 0;
 let taxiCounter = 0;
+
+// Start day at Monday 08:00 = 480 minutes
+const START_WORLD_MINUTES = 8 * 60;
 
 export const useSim = create<State>((set, get) => ({
   agents: {},
   messages: [],
+  dms: [],
   taxis: {},
   selectedAgentId: null,
   simSpeed: 1,
   paused: false,
+  worldMinutes: START_WORLD_MINUTES,
+  startedAt: Date.now(),
 
-  // ── Server sync ──────────────────────────────────────────────────────────────
-  setWorldFromServer: (serverAgents, serverMessages, serverTaxis) => {
-    set((s) => {
-      // Merge agents — preserve any local-only fields not in server DTO
-      const agents: Record<string, Agent> = {};
-      for (const sa of serverAgents) {
-        const existing = s.agents[sa.id];
-        agents[sa.id] = {
-          ...existing,
-          id:            sa.id,
-          name:          sa.name,
-          color:         sa.color,
-          model:         sa.model,
-          apiKey:        existing?.apiKey,
-          persona:       sa.persona,
-          traits:        sa.traits as Trait[],
-          energy:        sa.energy,
-          boredom:       sa.boredom,
-          social:        sa.social,
-          wallet:        sa.wallet,
-          state:         sa.state as Agent["state"],
-          position:      sa.position,
-          targetPosition: sa.targetPosition,
-          deskIndex:     sa.deskIndex,
-          houseIndex:    sa.houseIndex,
-          affinity:      existing?.affinity ?? {},
-          isTyping:      sa.isTyping,
-          createdAt:     sa.createdAt,
-        };
-      }
-
-      const messages: ChatMessage[] = serverMessages.map((m) => ({
-        id:        m.id,
-        agentId:   m.agentId,
-        text:      m.text,
-        ts:        m.ts,
-        reactions: m.reactions,
-        replyTo:   m.replyTo ?? undefined,
-      }));
-
-      const taxis: Record<string, Taxi> = {};
-      for (const t of serverTaxis) {
-        taxis[t.id] = {
-          id:       t.id,
-          agentId:  t.agentId,
-          position: t.position,
-          target:   t.target,
-          phase:    t.phase as Taxi["phase"],
-        };
-      }
-
-      return { agents, messages, taxis };
-    });
-  },
-
-  // ── Local helpers (used by World3D animation) ─────────────────────────────
-  addAgent: ({ name, model, apiKey, persona, traits }) => {
+  addAgent: ({ name, model, apiKey, persona, traits, job }) => {
     const id = `agent_${++agentCounter}_${Date.now().toString(36)}`;
     const existing = Object.values(get().agents);
     const deskIndex = existing.length;
     const houseIndex = existing.length;
     const pos = deskPosition(deskIndex);
     const color = COLORS[existing.length % COLORS.length];
+    const jobs: Job[] = ["dev", "doctor", "ceo", "barista", "banker", "artist"];
+    const assignedJob: Job = job ?? jobs[existing.length % jobs.length];
     const agent: Agent = {
       id, name, color, model, apiKey, persona, traits,
-      energy:   80 + Math.random() * 20,
-      boredom:  Math.random() * 30,
-      social:   50 + Math.random() * 40,
-      wallet:   100,
-      state:    "WORKING",
+      job: assignedJob,
+      energy:  80 + Math.random() * 20,
+      boredom: Math.random() * 25,
+      social:  50 + Math.random() * 40,
+      wallet:  200,
+      state:   "WORKING",
       position: pos,
       targetPosition: pos,
       deskIndex, houseIndex,
       affinity: {},
+      memory: [],
       isTyping: false,
+      lastPaydayMin: get().worldMinutes,
+      lastRentMin: get().worldMinutes,
       createdAt: Date.now(),
     };
     set((s) => ({ agents: { ...s.agents, [id]: agent } }));
@@ -215,6 +165,14 @@ export const useSim = create<State>((set, get) => ({
       return { agents: { ...s.agents, [id]: { ...a, ...patch } } };
     }),
 
+  pushMemory: (id, entry) =>
+    set((s) => {
+      const a = s.agents[id];
+      if (!a) return s;
+      const memory = [...a.memory, entry].slice(-30);
+      return { agents: { ...s.agents, [id]: { ...a, memory } } };
+    }),
+
   addMessage: (m) => {
     const id = `msg_${++msgCounter}`;
     set((s) => ({
@@ -228,9 +186,7 @@ export const useSim = create<State>((set, get) => ({
         m.id === msgId
           ? {
               ...m,
-              reactions: m.reactions.some(
-                (r) => r.agentId === agentId && r.emoji === emoji
-              )
+              reactions: m.reactions.some((r) => r.agentId === agentId && r.emoji === emoji)
                 ? m.reactions
                 : [...m.reactions, { agentId, emoji }],
             }
@@ -238,7 +194,25 @@ export const useSim = create<State>((set, get) => ({
       ),
     })),
 
-  spawnTaxi: (agentId) => {
+  sendDM: (fromId, toId, text) => {
+    const id = `dm_${++dmCounter}`;
+    const ts = Date.now();
+    set((s) => ({ dms: [...s.dms, { id, fromId, toId, text, ts, read: false }].slice(-500) }));
+    const { pushMemory, agents, worldMinutes } = get();
+    const toName = agents[toId]?.name ?? "";
+    const fromName = agents[fromId]?.name ?? "";
+    pushMemory(fromId, { ts, worldMin: worldMinutes, kind: "dm", text: `→ ${toName}: ${text}`, withId: toId });
+    pushMemory(toId,   { ts, worldMin: worldMinutes, kind: "dm", text: `← ${fromName}: ${text}`, withId: fromId });
+  },
+
+  markDMsRead: (agentId, withId) =>
+    set((s) => ({
+      dms: s.dms.map((d) =>
+        d.toId === agentId && d.fromId === withId ? { ...d, read: true } : d
+      ),
+    })),
+
+  spawnTaxi: (agentId, target, phase) => {
     const id = `taxi_${++taxiCounter}`;
     set((s) => ({
       taxis: {
@@ -246,8 +220,8 @@ export const useSim = create<State>((set, get) => ({
         [id]: {
           id, agentId,
           position: [...WORLD.roadSpawn],
-          target: [...WORLD.taxiPickupOffice],
-          phase: "TO_PICKUP",
+          target,
+          phase,
         },
       },
     }));
@@ -269,4 +243,34 @@ export const useSim = create<State>((set, get) => ({
   selectAgent: (id) => set({ selectedAgentId: id }),
   setSimSpeed: (s) => set({ simSpeed: s }),
   setPaused: (p) => set({ paused: p }),
+  tickClock: (dt) => set((s) => ({ worldMinutes: s.worldMinutes + dt })),
+
+  adjustAffinity: (aId, bName, delta) =>
+    set((s) => {
+      const a = s.agents[aId];
+      if (!a) return s;
+      const cur = a.affinity[bName] ?? 0;
+      const next = Math.max(-100, Math.min(100, cur + delta));
+      return { agents: { ...s.agents, [aId]: { ...a, affinity: { ...a.affinity, [bName]: next } } } };
+    }),
 }));
+
+// Clock helpers
+export function getHour(worldMinutes: number): number {
+  return Math.floor((worldMinutes % 1440) / 60);
+}
+export function getMinute(worldMinutes: number): number {
+  return Math.floor(worldMinutes % 60);
+}
+export function getDayIndex(worldMinutes: number): number {
+  return Math.floor(worldMinutes / 1440);
+}
+export function formatTime(worldMinutes: number): string {
+  const h = getHour(worldMinutes);
+  const m = getMinute(worldMinutes);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+export function isNight(worldMinutes: number): boolean {
+  const h = getHour(worldMinutes);
+  return h < 6 || h >= 20;
+}

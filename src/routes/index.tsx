@@ -4,23 +4,23 @@ import { Suspense, useEffect } from "react";
 import World3D from "@/components/world/World3D";
 import HamburgerMenu from "@/components/ui/HamburgerMenu";
 import AgentInspector from "@/components/ui/AgentInspector";
-import { useSim } from "@/lib/store";
-import { catchUpTick } from "@/lib/world.functions";
+import ClockHUD from "@/components/ui/ClockHUD";
+import { seedIfEmpty, startSimulation, stopSimulation } from "@/lib/mockSimulation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AI Life — Autonomous AI Sims Metaverse" },
+      { title: "AI Life — Autonomous 3D AI Simulation City" },
       {
         name: "description",
         content:
-          "A living 3D world where AI agents work, commute, chat, and sleep. Add your own AI via the hidden command panel.",
+          "A living 3D city where AI agents work jobs, commute, chat, DM each other, hit the cafe and sleep. Plug in your own model via /cmd.",
       },
-      { property: "og:title", content: "AI Life — Autonomous AI Sims Metaverse" },
+      { property: "og:title", content: "AI Life — Autonomous 3D AI Simulation City" },
       {
         property: "og:description",
         content:
-          "Watch AI agents live their lives in a 3D city. Plug in your own model and persona.",
+          "Watch AI agents live schedule-driven lives in a neon 3D city. Time, jobs, phones, cafés, parks — all autonomous.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -31,44 +31,10 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   useEffect(() => {
-    // Fire initial catch-up tick
-    catchUpTick().catch(() => {});
-
-    // Poll /api/state every 2 s to hydrate the store
-    const poll = async () => {
-      try {
-        const res = await fetch("/api/state");
-        if (!res.ok) return;
-        const data = await res.json() as {
-          agents: unknown[];
-          messages: unknown[];
-          taxis: unknown[];
-        };
-        // Use getState() to avoid subscribing to setWorldFromServer in render
-        useSim.getState().setWorldFromServer(
-          data.agents as Parameters<ReturnType<typeof useSim.getState>["setWorldFromServer"]>[0],
-          data.messages as Parameters<ReturnType<typeof useSim.getState>["setWorldFromServer"]>[1],
-          data.taxis as Parameters<ReturnType<typeof useSim.getState>["setWorldFromServer"]>[2],
-        );
-      } catch {
-        // ignore network blips
-      }
-    };
-
-    poll(); // immediate first fetch
-
-    const pollInterval = setInterval(poll, 2000);
-
-    // Every 5 s trigger a server-side simulation tick
-    const tickInterval = setInterval(() => {
-      catchUpTick().catch(() => {});
-    }, 5000);
-
-    return () => {
-      clearInterval(pollInterval);
-      clearInterval(tickInterval);
-    };
-  }, []); // run once on mount
+    seedIfEmpty();
+    startSimulation();
+    return () => stopSimulation();
+  }, []);
 
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-slate-900">
@@ -82,11 +48,12 @@ function Index() {
           <World3D />
         </Suspense>
       </Canvas>
+      <ClockHUD />
       <HamburgerMenu />
       <AgentInspector />
       <div className="pointer-events-none fixed bottom-4 left-4 text-xs text-white/50">
-        AI Life · drag to rotate · scroll to zoom · hint: type{" "}
-        <span className="rounded bg-white/10 px-1 font-mono">cmd</span> in the input
+        AI Life · drag to rotate · scroll to zoom · type{" "}
+        <span className="rounded bg-white/10 px-1 font-mono">cmd</span> for admin
       </div>
     </div>
   );

@@ -11,8 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as CmdRouteImport } from './routes/cmd'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiStreamRouteImport } from './routes/api/stream'
-import { Route as ApiStateRouteImport } from './routes/api/state'
 import { Route as ApiPublicAgentRouteImport } from './routes/api/public/agent'
 
 const CmdRoute = CmdRouteImport.update({
@@ -25,16 +23,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStreamRoute = ApiStreamRouteImport.update({
-  id: '/api/stream',
-  path: '/api/stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiStateRoute = ApiStateRouteImport.update({
-  id: '/api/state',
-  path: '/api/state',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicAgentRoute = ApiPublicAgentRouteImport.update({
   id: '/api/public/agent',
   path: '/api/public/agent',
@@ -44,44 +32,30 @@ const ApiPublicAgentRoute = ApiPublicAgentRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cmd': typeof CmdRoute
-  '/api/state': typeof ApiStateRoute
-  '/api/stream': typeof ApiStreamRoute
   '/api/public/agent': typeof ApiPublicAgentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cmd': typeof CmdRoute
-  '/api/state': typeof ApiStateRoute
-  '/api/stream': typeof ApiStreamRoute
   '/api/public/agent': typeof ApiPublicAgentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cmd': typeof CmdRoute
-  '/api/state': typeof ApiStateRoute
-  '/api/stream': typeof ApiStreamRoute
   '/api/public/agent': typeof ApiPublicAgentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cmd' | '/api/state' | '/api/stream' | '/api/public/agent'
+  fullPaths: '/' | '/cmd' | '/api/public/agent'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cmd' | '/api/state' | '/api/stream' | '/api/public/agent'
-  id:
-    | '__root__'
-    | '/'
-    | '/cmd'
-    | '/api/state'
-    | '/api/stream'
-    | '/api/public/agent'
+  to: '/' | '/cmd' | '/api/public/agent'
+  id: '__root__' | '/' | '/cmd' | '/api/public/agent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CmdRoute: typeof CmdRoute
-  ApiStateRoute: typeof ApiStateRoute
-  ApiStreamRoute: typeof ApiStreamRoute
   ApiPublicAgentRoute: typeof ApiPublicAgentRoute
 }
 
@@ -101,20 +75,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/stream': {
-      id: '/api/stream'
-      path: '/api/stream'
-      fullPath: '/api/stream'
-      preLoaderRoute: typeof ApiStreamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/state': {
-      id: '/api/state'
-      path: '/api/state'
-      fullPath: '/api/state'
-      preLoaderRoute: typeof ApiStateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/agent': {
       id: '/api/public/agent'
       path: '/api/public/agent'
@@ -128,8 +88,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CmdRoute: CmdRoute,
-  ApiStateRoute: ApiStateRoute,
-  ApiStreamRoute: ApiStreamRoute,
   ApiPublicAgentRoute: ApiPublicAgentRoute,
 }
 export const routeTree = rootRouteImport
