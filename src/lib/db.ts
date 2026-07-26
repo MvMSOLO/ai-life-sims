@@ -1,26 +1,24 @@
-import { Pool } from "pg";
+// DB layer is disabled for Cloudflare Workers deploy target.
+// Backend persistence will be re-added via Lovable Cloud in a later phase.
+// For now this is an in-memory no-op stub so client code and dev SSR work.
 
-// Replit provides DATABASE_URL automatically
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30_000,
-});
+const memory: { agents: Record<string, unknown>[]; messages: Record<string, unknown>[] } = {
+  agents: [],
+  messages: [],
+};
 
 export async function query<T = Record<string, unknown>>(
-  sql: string,
-  params?: unknown[]
+  _sql: string,
+  _params?: unknown[]
 ): Promise<T[]> {
-  const res = await pool.query(sql, params);
-  return res.rows as T[];
+  return [] as T[];
 }
 
 export async function queryOne<T = Record<string, unknown>>(
-  sql: string,
-  params?: unknown[]
+  _sql: string,
+  _params?: unknown[]
 ): Promise<T | null> {
-  const rows = await query<T>(sql, params);
-  return rows[0] ?? null;
+  return null;
 }
 
-export default pool;
+export default { memory };
