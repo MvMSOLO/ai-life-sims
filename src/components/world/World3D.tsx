@@ -773,6 +773,86 @@ function Streetlights() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
+function Cafe() {
+  const [cx, , cz] = WORLD.cafeCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 0.1, 0]} receiveShadow>
+        <boxGeometry args={[7, 0.2, 6]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.6, -2.6]} castShadow>
+        <boxGeometry args={[7, 3.2, 0.4]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 3.3, -2.6]}>
+        <boxGeometry args={[7.4, 0.15, 0.5]} />
+        <meshStandardMaterial color="#ff9500" emissive="#ff9500" emissiveIntensity={2} />
+      </mesh>
+      <pointLight position={[0, 3, 0]} intensity={5} color="#ff9500" distance={10} decay={2} />
+      <Html position={[0, 4.2, -2.5]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#ff950066", background: "#000000cc", color: "#ff9500", textShadow: "0 0 8px #ff9500", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          ☕ CAFÉ NEON
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function Park() {
+  const [cx, , cz] = WORLD.parkCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[5.5, 32]} />
+        <meshStandardMaterial color="#0d3d1f" roughness={0.95} />
+      </mesh>
+      {[[-2, 1], [2, -1], [1.5, 2], [-1.8, -1.6]].map(([x, z], i) => (
+        <group key={i} position={[x, 0, z]}>
+          <mesh position={[0, 0.9, 0]} castShadow>
+            <cylinderGeometry args={[0.12, 0.16, 1.8, 6]} />
+            <meshStandardMaterial color="#4a2818" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 2.1, 0]} castShadow>
+            <sphereGeometry args={[0.85, 8, 8]} />
+            <meshStandardMaterial color="#1a5d2e" roughness={0.9} />
+          </mesh>
+        </group>
+      ))}
+      <pointLight position={[0, 4, 0]} intensity={3} color="#84cc16" distance={12} decay={2} />
+      <Html position={[0, 5, 0]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#84cc1666", background: "#000000cc", color: "#84cc16", textShadow: "0 0 8px #84cc16", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          🌳 PARK
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function Bank() {
+  const [cx, , cz] = WORLD.bankCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
+        <boxGeometry args={[6, 3, 5]} />
+        <meshStandardMaterial color="#1a1e2e" roughness={0.5} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, 3.1, 0]}>
+        <boxGeometry args={[6.4, 0.15, 5.4]} />
+        <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={2} />
+      </mesh>
+      <Html position={[0, 4, 0]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#facc1566", background: "#000000cc", color: "#facc15", textShadow: "0 0 8px #facc15", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          🏦 BANK
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 export default function World3D() {
   const agentIds = useSim(useShallow((s) => Object.keys(s.agents)));
   const taxiIds = useSim(useShallow((s) => Object.keys(s.taxis)));
@@ -787,12 +867,11 @@ export default function World3D() {
       <OfficeBuilding />
       <Desks count={count} />
       <Houses count={count} />
-      {agentIds.map((id) => (
-        <AgentAvatar key={id} agentId={id} />
-      ))}
-      {taxiIds.map((id) => (
-        <Taxi key={id} taxiId={id} />
-      ))}
+      <Cafe />
+      <Park />
+      <Bank />
+      {agentIds.map((id) => <AgentAvatar key={id} agentId={id} />)}
+      {taxiIds.map((id) => <Taxi key={id} taxiId={id} />)}
       <OrbitControls
         makeDefault
         maxPolarAngle={Math.PI / 2.2}
@@ -804,3 +883,4 @@ export default function World3D() {
     </>
   );
 }
+
