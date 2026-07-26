@@ -9,30 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as CmdRouteImport } from './routes/cmd'
-import { Route as ApiStateRouteImport } from './routes/api/state'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamRouteImport } from './routes/api/stream'
+import { Route as ApiStateRouteImport } from './routes/api/state'
 import { Route as ApiPublicAgentRouteImport } from './routes/api/public/agent'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CmdRoute = CmdRouteImport.update({
   id: '/cmd',
   path: '/cmd',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStateRoute = ApiStateRouteImport.update({
-  id: '/api/state',
-  path: '/api/state',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStreamRoute = ApiStreamRouteImport.update({
   id: '/api/stream',
   path: '/api/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStateRoute = ApiStateRouteImport.update({
+  id: '/api/state',
+  path: '/api/state',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicAgentRoute = ApiPublicAgentRouteImport.update({
@@ -87,13 +87,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/cmd': {
       id: '/cmd'
       path: '/cmd'
@@ -101,11 +94,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CmdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/state': {
-      id: '/api/state'
-      path: '/api/state'
-      fullPath: '/api/state'
-      preLoaderRoute: typeof ApiStateRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/stream': {
@@ -113,6 +106,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stream'
       fullPath: '/api/stream'
       preLoaderRoute: typeof ApiStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/state': {
+      id: '/api/state'
+      path: '/api/state'
+      fullPath: '/api/state'
+      preLoaderRoute: typeof ApiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/agent': {
