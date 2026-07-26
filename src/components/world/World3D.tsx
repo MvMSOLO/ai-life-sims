@@ -1,11 +1,11 @@
 import { useMemo, useRef } from "react";
-import { housePosition, useSim, WORLD, deskPosition } from "@/lib/store";
+import { housePosition, useSim, WORLD, deskPosition, getHour, isNight } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 
-// ─── Atmosphere & Lighting ────────────────────────────────────────────────────
+// ─── Atmosphere & Lighting (day/night driven by world clock) ─────────────────
 
 function Atmosphere() {
   return (
