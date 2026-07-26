@@ -8,15 +8,23 @@ import * as THREE from "three";
 // ─── Atmosphere & Lighting (day/night driven by world clock) ─────────────────
 
 function Atmosphere() {
+  const worldMin = useSim((s) => s.worldMinutes);
+  const night = isNight(worldMin);
+  const hour = getHour(worldMin);
+  // Sunlight intensity: peak at 13:00, 0 at 22-6
+  const sun = Math.max(0, Math.cos(((hour - 13) / 12) * Math.PI)) * 0.9;
+  const ambient = night ? 0.08 : 0.25 + sun * 0.15;
+  const sunColor = night ? "#3b4a80" : hour < 8 || hour > 18 ? "#ffb47a" : "#fff4e0";
+  const bg = night ? "#05080f" : hour < 8 || hour > 18 ? "#1a1030" : "#0a1830";
   return (
     <>
-      <fog attach="fog" args={["#05080f", 45, 150]} />
-      <color attach="background" args={["#05080f"]} />
-      <ambientLight intensity={0.12} color="#1a2a4a" />
+      <fog attach="fog" args={[bg, 45, 150]} />
+      <color attach="background" args={[bg]} />
+      <ambientLight intensity={ambient} color={night ? "#1a2a4a" : "#b8d0ff"} />
       <directionalLight
         position={[15, 35, 10]}
-        intensity={0.5}
-        color="#b8d0ff"
+        intensity={night ? 0.15 : 0.4 + sun * 0.8}
+        color={sunColor}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={120}
@@ -25,14 +33,11 @@ function Atmosphere() {
         shadow-camera-top={60}
         shadow-camera-bottom={-60}
       />
-      {/* Neon point lights — office area */}
-      <pointLight position={[-25, 6, 0]} intensity={12} color="#00f5ff" distance={22} decay={2} />
-      {/* Road strip light */}
-      <pointLight position={[0, 2, 4]} intensity={6} color="#7c3aed" distance={18} decay={2} />
-      {/* Residential warm light */}
-      <pointLight position={[35, 4, -4]} intensity={8} color="#ff2d78" distance={24} decay={2} />
-      <pointLight position={[55, 3, -4]} intensity={5} color="#f59e0b" distance={14} decay={2} />
-      <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />
+      <pointLight position={[-25, 6, 0]} intensity={night ? 14 : 4} color="#00f5ff" distance={22} decay={2} />
+      <pointLight position={[0, 2, 4]} intensity={night ? 6 : 2} color="#7c3aed" distance={18} decay={2} />
+      <pointLight position={[35, 4, -4]} intensity={night ? 10 : 3} color="#ff2d78" distance={24} decay={2} />
+      <pointLight position={[55, 3, -4]} intensity={night ? 5 : 1.5} color="#f59e0b" distance={14} decay={2} />
+      {night && <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />}
     </>
   );
 }
