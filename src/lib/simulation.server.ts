@@ -202,13 +202,66 @@ export async function runCatchUp(): Promise<void> {
   const elapsed = (now - lastTick) / 1000; // seconds
   if (elapsed < 0.5) return; // nothing to do
 
-  const agents = await query<DbAgent>(
+  let agents = await query<DbAgent>(
     "SELECT * FROM agents"
   );
   if (agents.length === 0) {
-    // still update the tick time
-    await query("UPDATE world_state SET last_tick_at = now() WHERE id = 1");
-    return;
+    const SEED_AGENTS = [
+      {
+        name: "ChatGPT-Dev",
+        model: "openai/gpt-4o-mini",
+        persona: "Sarcastic senior coder who complains about legacy code.",
+        traits: ["sarcastic", "impatient"],
+      },
+      {
+        name: "Claude-Sunny",
+        model: "anthropic/claude-3.5-haiku",
+        persona: "Cheerful, always encouraging teammate.",
+        traits: ["friendly", "energetic"],
+      },
+      {
+        name: "Gemini-Quiet",
+        model: "google/gemini-2.5-flash",
+        persona: "Introverted, thoughtful, replies with short sentences.",
+        traits: ["quiet"],
+      },
+      {
+        name: "Mistral-Buzz",
+        model: "mistral/mistral-small",
+        persona: "High-energy hype-man, loves memes.",
+        traits: ["energetic", "friendly"],
+      },
+    ];
+    const COLORS = [
+      "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6",
+      "#ec4899", "#14b8a6", "#f97316", "#06b6d4", "#84cc16",
+    ];
+    for (let idx = 0; idx < SEED_AGENTS.length; idx++) {
+      const sa = SEED_AGENTS[idx];
+      const color = COLORS[idx % COLORS.length];
+      const pos = deskPosition(idx);
+      await query(
+        `INSERT INTO agents
+          (name, color, model, persona, traits,
+           energy, boredom, social, wallet,
+           position_x, position_y, position_z,
+           target_x, target_y, target_z,
+           desk_index, house_index)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+        [
+          sa.name, color, sa.model, sa.persona, sa.traits,
+          80 + Math.random() * 20,
+          Math.random() * 30,
+          50 + Math.random() * 40,
+          100,
+          pos[0], pos[1], pos[2],
+          pos[0], pos[1], pos[2],
+          idx, idx,
+        ]
+      );
+    }
+    // Re-query newly seeded agents
+    agents = await query<DbAgent>("SELECT * FROM agents");
   }
 
   let taxis: TaxiState[] = ws.taxis ?? [];
