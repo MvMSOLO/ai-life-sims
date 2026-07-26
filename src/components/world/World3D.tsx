@@ -1,22 +1,30 @@
 import { useMemo, useRef } from "react";
-import { housePosition, useSim, WORLD, deskPosition } from "@/lib/store";
+import { housePosition, useSim, WORLD, deskPosition, getHour, isNight } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 
-// ─── Atmosphere & Lighting ────────────────────────────────────────────────────
+// ─── Atmosphere & Lighting (day/night driven by world clock) ─────────────────
 
 function Atmosphere() {
+  const worldMin = useSim((s) => s.worldMinutes);
+  const night = isNight(worldMin);
+  const hour = getHour(worldMin);
+  // Sunlight intensity: peak at 13:00, 0 at 22-6
+  const sun = Math.max(0, Math.cos(((hour - 13) / 12) * Math.PI)) * 0.9;
+  const ambient = night ? 0.08 : 0.25 + sun * 0.15;
+  const sunColor = night ? "#3b4a80" : hour < 8 || hour > 18 ? "#ffb47a" : "#fff4e0";
+  const bg = night ? "#05080f" : hour < 8 || hour > 18 ? "#1a1030" : "#0a1830";
   return (
     <>
-      <fog attach="fog" args={["#05080f", 45, 150]} />
-      <color attach="background" args={["#05080f"]} />
-      <ambientLight intensity={0.12} color="#1a2a4a" />
+      <fog attach="fog" args={[bg, 45, 150]} />
+      <color attach="background" args={[bg]} />
+      <ambientLight intensity={ambient} color={night ? "#1a2a4a" : "#b8d0ff"} />
       <directionalLight
         position={[15, 35, 10]}
-        intensity={0.5}
-        color="#b8d0ff"
+        intensity={night ? 0.15 : 0.4 + sun * 0.8}
+        color={sunColor}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={120}
@@ -25,14 +33,11 @@ function Atmosphere() {
         shadow-camera-top={60}
         shadow-camera-bottom={-60}
       />
-      {/* Neon point lights — office area */}
-      <pointLight position={[-25, 6, 0]} intensity={12} color="#00f5ff" distance={22} decay={2} />
-      {/* Road strip light */}
-      <pointLight position={[0, 2, 4]} intensity={6} color="#7c3aed" distance={18} decay={2} />
-      {/* Residential warm light */}
-      <pointLight position={[35, 4, -4]} intensity={8} color="#ff2d78" distance={24} decay={2} />
-      <pointLight position={[55, 3, -4]} intensity={5} color="#f59e0b" distance={14} decay={2} />
-      <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />
+      <pointLight position={[-25, 6, 0]} intensity={night ? 14 : 4} color="#00f5ff" distance={22} decay={2} />
+      <pointLight position={[0, 2, 4]} intensity={night ? 6 : 2} color="#7c3aed" distance={18} decay={2} />
+      <pointLight position={[35, 4, -4]} intensity={night ? 10 : 3} color="#ff2d78" distance={24} decay={2} />
+      <pointLight position={[55, 3, -4]} intensity={night ? 5 : 1.5} color="#f59e0b" distance={14} decay={2} />
+      {night && <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />}
     </>
   );
 }
@@ -768,6 +773,86 @@ function Streetlights() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
+function Cafe() {
+  const [cx, , cz] = WORLD.cafeCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 0.1, 0]} receiveShadow>
+        <boxGeometry args={[7, 0.2, 6]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.6, -2.6]} castShadow>
+        <boxGeometry args={[7, 3.2, 0.4]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 3.3, -2.6]}>
+        <boxGeometry args={[7.4, 0.15, 0.5]} />
+        <meshStandardMaterial color="#ff9500" emissive="#ff9500" emissiveIntensity={2} />
+      </mesh>
+      <pointLight position={[0, 3, 0]} intensity={5} color="#ff9500" distance={10} decay={2} />
+      <Html position={[0, 4.2, -2.5]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#ff950066", background: "#000000cc", color: "#ff9500", textShadow: "0 0 8px #ff9500", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          ☕ CAFÉ NEON
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function Park() {
+  const [cx, , cz] = WORLD.parkCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[5.5, 32]} />
+        <meshStandardMaterial color="#0d3d1f" roughness={0.95} />
+      </mesh>
+      {[[-2, 1], [2, -1], [1.5, 2], [-1.8, -1.6]].map(([x, z], i) => (
+        <group key={i} position={[x, 0, z]}>
+          <mesh position={[0, 0.9, 0]} castShadow>
+            <cylinderGeometry args={[0.12, 0.16, 1.8, 6]} />
+            <meshStandardMaterial color="#4a2818" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 2.1, 0]} castShadow>
+            <sphereGeometry args={[0.85, 8, 8]} />
+            <meshStandardMaterial color="#1a5d2e" roughness={0.9} />
+          </mesh>
+        </group>
+      ))}
+      <pointLight position={[0, 4, 0]} intensity={3} color="#84cc16" distance={12} decay={2} />
+      <Html position={[0, 5, 0]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#84cc1666", background: "#000000cc", color: "#84cc16", textShadow: "0 0 8px #84cc16", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          🌳 PARK
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function Bank() {
+  const [cx, , cz] = WORLD.bankCenter;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
+        <boxGeometry args={[6, 3, 5]} />
+        <meshStandardMaterial color="#1a1e2e" roughness={0.5} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, 3.1, 0]}>
+        <boxGeometry args={[6.4, 0.15, 5.4]} />
+        <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={2} />
+      </mesh>
+      <Html position={[0, 4, 0]} center distanceFactor={22}>
+        <div className="pointer-events-none rounded border px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm"
+          style={{ borderColor: "#facc1566", background: "#000000cc", color: "#facc15", textShadow: "0 0 8px #facc15", letterSpacing: 2, whiteSpace: "nowrap" }}>
+          🏦 BANK
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 export default function World3D() {
   const agentIds = useSim(useShallow((s) => Object.keys(s.agents)));
   const taxiIds = useSim(useShallow((s) => Object.keys(s.taxis)));
@@ -782,12 +867,11 @@ export default function World3D() {
       <OfficeBuilding />
       <Desks count={count} />
       <Houses count={count} />
-      {agentIds.map((id) => (
-        <AgentAvatar key={id} agentId={id} />
-      ))}
-      {taxiIds.map((id) => (
-        <Taxi key={id} taxiId={id} />
-      ))}
+      <Cafe />
+      <Park />
+      <Bank />
+      {agentIds.map((id) => <AgentAvatar key={id} agentId={id} />)}
+      {taxiIds.map((id) => <Taxi key={id} taxiId={id} />)}
       <OrbitControls
         makeDefault
         maxPolarAngle={Math.PI / 2.2}
@@ -799,3 +883,4 @@ export default function World3D() {
     </>
   );
 }
+
