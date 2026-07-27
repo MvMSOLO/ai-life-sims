@@ -404,10 +404,11 @@ function AgentAvatar({ agentId }: { agentId: string }) {
     const rl = rLegPivotRef.current;
     if (!body || !head || !la || !ra || !ll || !rl) return;
 
-    const isWalking = state === "COMMUTING_HOME" || state === "COMMUTING_WORK";
+    const isWalking = state === "COMMUTING_HOME" || state === "COMMUTING_WORK" || state === "COMMUTING_CAFE" || state === "COMMUTING_PARK";
     const isWorking = state === "WORKING";
     const isSleeping = state === "SLEEPING";
-    const isChatting = state === "CHATTING";
+    // When agent is speaking/typing we play the chat/wave gesture regardless of underlying state
+    const isChatting = state === "CHATTING" || agent.isTyping;
     const isRelaxing = state === "RELAXING";
 
     if (isWalking) {
