@@ -8,6 +8,7 @@
     "build": "bun x --bun vite build",
     "build:dev": "bun x --bun vite build --mode development",
     "preview": "bun x --bun vite preview",
+    "start": "bun .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
