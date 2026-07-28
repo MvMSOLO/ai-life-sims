@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       server: { entry: "server" },
+      prerender: {
+        enabled: true,
+      },
     }),
     react(),
     tailwindcss(),
@@ -18,11 +21,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     watch: {
-      ignored: [
-        "**/.cache/**",
-        "**/.local/**",
-        "**/node_modules/**",
-      ],
+      ignored: ["**/.cache/**", "**/.local/**", "**/node_modules/**"],
     },
   },
 });
