@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       server: { entry: "server" },
+      deployment: {
+        preset: "vercel", // Vercel uchun maxsus marshrutizatorni yoqadi
+      },
       prerender: {
         enabled: true,
       },
