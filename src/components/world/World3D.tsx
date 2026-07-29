@@ -4,6 +4,8 @@ import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
+import Stadium from "./Stadium";
+import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 
 // ─── Atmosphere & Lighting (day/night driven by world clock) ─────────────────
 
@@ -11,11 +13,12 @@ function Atmosphere() {
   const worldMin = useSim((s) => s.worldMinutes);
   const night = isNight(worldMin);
   const hour = getHour(worldMin);
-  // Sunlight intensity: peak at 13:00, 0 at 22-6
+  const mobile = useIsMobile();
   const sun = Math.max(0, Math.cos(((hour - 13) / 12) * Math.PI)) * 0.9;
   const ambient = night ? 0.08 : 0.25 + sun * 0.15;
   const sunColor = night ? "#3b4a80" : hour < 8 || hour > 18 ? "#ffb47a" : "#fff4e0";
   const bg = night ? "#05080f" : hour < 8 || hour > 18 ? "#1a1030" : "#0a1830";
+  const shadowSize = mobile ? 512 : 2048;
   return (
     <>
       <fog attach="fog" args={[bg, 45, 150]} />
@@ -25,8 +28,8 @@ function Atmosphere() {
         position={[15, 35, 10]}
         intensity={night ? 0.15 : 0.4 + sun * 0.8}
         color={sunColor}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
+        castShadow={!mobile}
+        shadow-mapSize={[shadowSize, shadowSize]}
         shadow-camera-far={120}
         shadow-camera-left={-60}
         shadow-camera-right={60}
@@ -37,7 +40,8 @@ function Atmosphere() {
       <pointLight position={[0, 2, 4]} intensity={night ? 6 : 2} color="#7c3aed" distance={18} decay={2} />
       <pointLight position={[35, 4, -4]} intensity={night ? 10 : 3} color="#ff2d78" distance={24} decay={2} />
       <pointLight position={[55, 3, -4]} intensity={night ? 5 : 1.5} color="#f59e0b" distance={14} decay={2} />
-      {night && <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />}
+      {night && !mobile && <Stars radius={90} depth={50} count={4000} factor={3} saturation={0.6} fade speed={0.4} />}
+      {night && mobile && <Stars radius={80} depth={30} count={800} factor={2} saturation={0.4} fade speed={0.3} />}
     </>
   );
 }
@@ -858,12 +862,14 @@ export default function World3D() {
   const agentIds = useSim(useShallow((s) => Object.keys(s.agents)));
   const taxiIds = useSim(useShallow((s) => Object.keys(s.taxis)));
   const count = agentIds.length;
+  const mobile = useIsMobile();
+  const touch = useIsTouch();
 
   return (
     <>
       <Atmosphere />
       <Ground />
-      <BackgroundSkyline />
+      {!mobile && <BackgroundSkyline />}
       <Streetlights />
       <OfficeBuilding />
       <Desks count={count} />
@@ -871,15 +877,19 @@ export default function World3D() {
       <Cafe />
       <Park />
       <Bank />
+      <Stadium />
       {agentIds.map((id) => <AgentAvatar key={id} agentId={id} />)}
       {taxiIds.map((id) => <Taxi key={id} taxiId={id} />)}
       <OrbitControls
         makeDefault
         maxPolarAngle={Math.PI / 2.2}
-        minDistance={8}
-        maxDistance={95}
+        minDistance={10}
+        maxDistance={mobile ? 70 : 95}
         enableDamping
-        dampingFactor={0.06}
+        dampingFactor={touch ? 0.12 : 0.06}
+        enablePan={!touch}
+        rotateSpeed={touch ? 0.6 : 1}
+        zoomSpeed={touch ? 0.6 : 1}
       />
     </>
   );

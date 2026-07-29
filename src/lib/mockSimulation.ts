@@ -5,11 +5,13 @@ import {
   housePosition,
   cafeSeatPosition,
   parkSpotPosition,
+  stadiumSeatPosition,
   useSim,
   getHour,
   JOB_INFO,
 } from "./store";
 import type { Agent, AgentState } from "./types";
+import { craftContextualLine, pickNearbyListener, locationOf } from "./dialogueEngine";
 
 // ── Real-time → in-game time
 // 1 real second = 4 in-game minutes → full day (1440 min) in 6 real minutes
@@ -184,6 +186,9 @@ function intendedState(a: Agent, hour: number, worldMin: number): AgentState {
   if (hour >= 22 || hour < 8) return "SLEEPING";
   if (hour === 8) return "COMMUTING_WORK";
   if (hour === 12) return "AT_CAFE";
+  // Matchday! Every 2nd day at 20-21 → stadium
+  const isMatchday = Math.floor(worldMin / 1440) % 2 === 0;
+  if (isMatchday && (hour === 20 || hour === 21)) return "AT_STADIUM";
   if ((hour >= 9 && hour <= 11) || (hour >= 13 && hour <= 18)) return "WORKING";
   if (hour === 19 || hour === 20) return a.social < 45 ? "AT_PARK" : "RELAXING";
   return "RELAXING";
@@ -196,6 +201,8 @@ function targetForState(a: Agent, s: AgentState): [number, number, number] {
     case "RELAXING":      { const p = housePosition(a.houseIndex); return [p[0], 0, p[2]]; }
     case "AT_CAFE":       return cafeSeatPosition(a.deskIndex);
     case "AT_PARK":       return parkSpotPosition(a.deskIndex);
+    case "AT_STADIUM":    return stadiumSeatPosition(a.deskIndex);
+    case "COMMUTING_STADIUM": return [WORLD.stadiumEntry[0], 0, WORLD.stadiumEntry[2]];
     case "COMMUTING_WORK":return [...WORLD.taxiPickupHome];
     case "COMMUTING_HOME":return [...WORLD.taxiPickupOffice];
     case "COMMUTING_CAFE":return [...WORLD.taxiPickupOffice];
@@ -307,6 +314,7 @@ function tick(dtSec: number) {
     else if (state === "RELAXING") { energy += 0.7 * factor; boredom -= 0.4 * factor; social -= 0.1 * factor; }
     else if (state === "AT_CAFE") { energy += 0.4 * factor; social += 0.6 * factor; boredom -= 0.3 * factor; }
     else if (state === "AT_PARK") { energy += 0.5 * factor; social += 0.4 * factor; boredom -= 0.5 * factor; }
+    else if (state === "AT_STADIUM") { energy -= 0.1 * factor; social += 1.2 * factor; boredom -= 1.0 * factor; }
     energy = Math.max(0, Math.min(100, energy));
     boredom = Math.max(0, Math.min(100, boredom));
     social = Math.max(0, Math.min(100, social));
@@ -510,6 +518,28 @@ function tick(dtSec: number) {
     markSpeaking(a.id);
     lastMsgAt = Date.now();
   }
+  // 3b) Contextual, memory-aware nearby chat (feels like real bump-ins)
+  if (Date.now() - lastMsgAt > 2500 && chance(0.12 * speed) && eligible.length > 1) {
+    const speaker = pick(eligible);
+    const listener = pickNearbyListener(speaker, agentArr);
+    if (listener) {
+      const isMatchday = Math.floor(worldMin / 1440) % 2 === 0 && (hour === 20 || hour === 21);
+      const text = craftContextualLine({
+        speaker, listener, worldMin,
+        location: locationOf(speaker),
+        isMatchday,
+      });
+      useSim.getState().addMessage({ agentId: speaker.id, text });
+      useSim.getState().pushMemory(speaker.id, {
+        ts: Date.now(), worldMin, kind: "chat",
+        text: `→ ${listener.name}: ${text}`, withId: listener.id,
+      });
+      useSim.getState().adjustAffinity(speaker.id, listener.name, 1);
+      markSpeaking(speaker.id);
+      lastMsgAt = Date.now();
+    }
+  }
+
 
   // 3) Silence → impatient / quiet-check
   if (Date.now() - lastMsgAt > 18000 && eligible.length > 0 && hour >= 7 && hour < 23) {
