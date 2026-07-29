@@ -1,70 +1,135 @@
-# Realism, Mobile Performance & Bernabéu Stadium
 
-Three focused deliverables. No new features outside these.
+# AI Life — Autonomous AI Sims Metaverse
 
-## 1. AI Agent Logic — dynamic 24h routines + contextual dialogue
+Katta loyiha. Uni **bosqichlarga** bo'lamiz. **Bu plan faqat FRONTEND + 3D WORLD** bosqichini qamraydi. Backend (persistence, AI loops, chat engine, taxi state machine) alohida agentga topshiriladi — buning uchun `promptforyou.md` yaratamiz.
 
-Rewrite the schedule core in `src/lib/mockSimulation.ts`:
+---
 
-- Replace the fixed Home→Office→Home loop with a per-agent daily plan generated each morning at 06:00 from: `job`, `traits`, `energy`, `social`, `boredom`, `wallet`, and yesterday's memory.
-- Plan is an ordered list of `{ startMin, endMin, activity, location }` blocks. Activities: `sleep, breakfast_cafe, work, market_run, park_jog, park_relax, cafe_hangout, bank_visit, gallery_walk, freelance_home, night_cafe, night_park`.
-- Job archetypes drive defaults, then traits mutate them:
-  - Artist: late start, gallery walk midday, night_cafe or night_park after 21:00.
-  - Barista: 05:30 market_run, cafe shift 06:00–14:00, park_relax after.
-  - Dev: flexible hours, freelance_home evenings if wallet low.
-  - Doctor: strict 08:00–18:00 work, short cafe lunch.
-  - CEO: bank_visit + long work, night_cafe networking.
-  - Banker: bank 09:00–17:00, gym-style park_jog before work.
-  - Traits (`energetic`, `quiet`, `friendly`, `impatient`, `sarcastic`) shift block durations and add/remove social blocks.
-- Needs override plan: `energy<15` forces sleep; `boredom>80` inserts park/cafe; `wallet<50` inserts freelance/side-gig; `social<20 && friendly` inserts cafe_hangout.
-- Movement uses existing taxi/walk system; new locations reuse Cafe/Park/Bank; add a lightweight `Market` spot near cafe (no new mesh — reuse cafe area with a labeled stall).
+## Bosqich 1 (HOZIR) — Frontend & 3D dunyo
 
-Contextual dialogue rewrite in the same file:
+### 1.1 Texnologiya
+- **React Three Fiber** (`@react-three/fiber`, `@react-three/drei`) — 3D sahna
+- **Zustand** — client state (agents, chat, camera)
+- **Tailwind + shadcn** — UI (chat panel, cmd panel, hamburger menu)
+- **Mock backend** — hozircha in-memory simulator (setInterval tick), keyin real backendga ulaymiz
 
-- Proximity check (already exists) triggers a `converse(a, b)` function that:
-  1. Reads last 8 memory entries where `withId === other.id`.
-  2. Reads other agent's current `state`, `activity`, `energy`, `social`, affinity score.
-  3. Picks a template category: `greeting_first_time`, `callback` (references last topic), `status_check` (comments on tiredness/mood), `plan_invite` (suggests joint cafe/park based on shared free block), `job_talk`, `banter` (only if affinity>30 and both `friendly`/`sarcastic`).
-  4. Templates in Uzbek + English mix (short: "Salom, kecha park zor ediya", "wsp, still tired from that shift?"). Reply uses the same category and stores a memory entry summarising the topic.
-- Group chatter frequency reduced; DMs increased for friends (affinity>40).
+### 1.2 3D Dunyo tuzilmasi
+- **Office District**: 1 katta bino, ichida stollar (desks) grid, agentlar o'tirib "ishlaydi"
+- **Residential District**: uylar qatori, har biri karavot bilan
+- **Highway**: ofis va uylarni ulaydigan yo'l, chiziqlar bilan
+- **Taxi**: sariq mashina asset, highway bo'ylab yuradi
+- **Kamera**: OrbitControls, sichqoncha bilan aylantirish, zoom
+- **Performance**: instanced meshes, low-poly, LOD, shadows optimized — 60fps kafolat
 
-## 2. Mobile performance & touch controls
+### 1.3 Agent avatarlari
+- Oddiy stylized character (capsule + head sphere + rang), ustida ism va state emoji
+- Animatsiyalar: idle, walking, typing, sleeping (skeletal emas, procedural bob/sway MVP uchun)
+- State visualization: ustida icon (💼 working, 😴 sleeping, 🚕 commuting, 💬 chatting)
 
-Edits confined to `src/routes/index.tsx` and `src/components/world/World3D.tsx`.
+### 1.4 UI Layout
+- **Hamburger menu** (o'ng-yuqori burchak, kichik, dunyoga xalaqit bermaydi)
+  - "Chat" — global chat panelini ochadi (slide-in o'ng tomondan)
+  - "Agents" — barcha agentlar ro'yxati, holati, biometrics
+  - "CMD" — cmd input maydoni (oddiy input, `cmd` yozilsa maxfiy panel ochiladi)
+- **Chat paneli**: agentlar xabarlarini real-time ko'rsatadi, reactions, typing indicators
+- **Agent inspector**: agentga bosilsa modal — Energy/Boredom/Social/Wallet barlar, Affinity matrix
 
-- Detect low-power mode once: `isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 768`.
-- `<Canvas>`: `dpr={[1, Math.min(devicePixelRatio, isMobile ? 1.25 : 2)]}`, `shadows={isMobile ? false : 'soft'}`, `gl={{ antialias: !isMobile, powerPreference: 'high-performance' }}`, `frameloop="demand"` when tab hidden (via `document.visibilityState`).
-- Directional light `shadow-mapSize` drops from 2048 → 1024 on desktop, shadows disabled on mobile.
-- `OrbitControls`: `enablePan={!isMobile}`, `touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}`, `rotateSpeed` 0.6 mobile / 1 desktop, `zoomSpeed` 0.8, wider `minDistance`/`maxDistance` for phones.
-- Mobile-only cuts: hide `<Stars>`, skip window/detail meshes inside houses, lower agent geometry segments (capsule/sphere segments 8 instead of 16), disable ground glow ring, cap taxi count.
-- Add `frustumCulled` explicitly on large static meshes and share geometries/materials via `useMemo` at module scope where cheap.
+### 1.5 CMD Sekret Panel
+- Hamburger → CMD input
+- Foydalanuvchi `cmd` yozadi → yangi sahifa ochiladi `/cmd`
+- `/cmd` sahifasida:
+  - **"Add AI Agent" formasi**:
+    - Ism (masalan "ChatGPT-Dev")
+    - AI Model (dropdown: `openai/gpt-4o-mini`, `google/gemini-2.5-flash`, `openrouter/free/*`, custom)
+    - API Key (input, ixtiyoriy — bo'sh bo'lsa default Lovable AI Gateway ishlatiladi)
+    - Persona/Personality (textarea: "Sarcastic coder", "Cheerful intern"...)
+    - Traits (checkbox: impatient, friendly, quiet, energetic)
+  - **Agent boshqaruv**: mavjud agentlarni o'chirish/tahrirlash
+  - **World controls**: simulation speed, add office floor, add house
 
-## 3. Santiago Bernabéu stadium (south of the road)
+### 1.6 Mock simulation (hozircha, keyin backendga ko'chadi)
+Frontend `useEffect` + `setInterval` orqali:
+- Har 1s server tick imitatsiya: Energy/Boredom/Social decay
+- State machine: working → commuting → sleeping → back to work
+- Chat mock: agentlar random javob (backend bo'lguncha placeholder)
+- Taxi spawn/despawn logic (visual)
 
-New file `src/components/world/Bernabeu.tsx`, mounted from `World3D` at the **south** side of the road (positive Z, opposite Cafe/Park). Coordinates chosen so it doesn't collide with Houses.
+### 1.7 Sahifalar (TanStack routes)
+- `/` — 3D dunyo + hamburger UI
+- `/cmd` — sekret admin panel (agent qo'shish/boshqarish)
 
-Structure (all primitive R3F meshes, no external GLB — matches the "no lag" rule):
+---
 
-- Elliptical footprint: outer ring built from ~48 curved wall segments forming an oval (~40×32 units).
-- Modern metallic facade: vertical louver strips (`MeshStandardMaterial` metalness 0.85, roughness 0.25, colour #C8CCD1) wrapping the ellipse, with subtle emissive band for the LED ring.
-- Retractable roof: two half-ellipse curved panels meeting at centre, slight gap; supported by an inner truss ring (thin torus + radial cylinders).
-- Interior bowl: 4 tiers of stepped seating rings using `RingGeometry` slices, colour Real Madrid blue `#0E1A6B` with lighter accent `#1C3FB8`; a few white seat blocks spelling "R M" via material swap at fixed indices.
-- Pitch: green rectangle (`#2E7D32`) with lighter mowing stripes (alternating plane strips), white line overlays (thin boxes) for touchlines, halfway line, centre circle (`RingGeometry`), penalty boxes.
-- Floodlight glow: 4 spotlights aimed at pitch (low intensity on mobile / off if shadows disabled).
-- Entrance plaza with steps and a small "Santiago Bernabéu" sign (Drei `<Text>`).
-- All shadow casting disabled on mobile; heavy detail (louvers, seat accent stripes, floodlights) skipped when `isMobile`.
+## Bosqich 2 (KEYINGI AGENT) — `promptforyou.md`
 
-Reference gathering: before implementing, run 2–3 web image/searches for "Santiago Bernabéu new roof 2024 exterior", "Bernabéu interior seating tiers", "Bernabéu pitch layout" to confirm proportions and colours; cite nothing in code, just use for measurements.
+Ushbu faylda keyingi agent uchun to'liq backend spec bo'ladi:
 
-## Bonus (the "thank-you")
+### promptforyou.md tarkibi:
+1. **Loyiha overview** — nima qurayapmiz, hozirgi frontend holati
+2. **Frontend contract** — qanday WebSocket event'lar, REST endpoints kutiladi (aniq JSON schemalar)
+3. **Backend vazifalari**:
+   - Persistence layer (Lovable Cloud DB schema: agents, messages, affinity, world_state)
+   - Tick engine (user ochganda catch-up simulation, oxirgi tick_at dan hozirgi vaqtgacha hisoblab chiqadi)
+   - AI response engine (har agent uchun o'z API key bilan LLM call, fallback → Lovable AI Gateway)
+   - Chat engine (silence detection, proactive messages, reactions, typing lag, accountability loop)
+   - State machine (COMMUTING/TAXI/RELAXING/SLEEPING transitions)
+   - Public REST API `/api/public/agent` — Custom GPT'lar ulanishi uchun (OpenAPI schema bilan)
+4. **Har vazifa uchun task-task breakdown** — kichik qismlarga bo'lingan, "birinchi shuni qil, keyin buni" formatida
+5. **Frontend integratsiya nuqtalari** — qaysi mock funksiyalar real APIga almashtirilishi kerak
 
-Small quality-of-life additions bundled with the above, no extra scope:
+---
 
-- Minimap HUD (top-right, 120px) showing agent dots, stadium, cafe, park, bank — click a dot to select that agent.
-- Day/night ambient audio toggle button (muted by default) using a single short loop.
+## Fayl tuzilmasi (yaratiladigan)
 
-## Technical notes
+```
+src/
+├── routes/
+│   ├── index.tsx              # 3D dunyo (asosiy)
+│   └── cmd.tsx                # Sekret admin panel
+├── components/
+│   ├── world/
+│   │   ├── World3D.tsx        # R3F Canvas root
+│   │   ├── OfficeBuilding.tsx
+│   │   ├── ResidentialArea.tsx
+│   │   ├── Highway.tsx
+│   │   ├── Taxi.tsx
+│   │   ├── AgentAvatar.tsx
+│   │   └── Ground.tsx
+│   ├── ui/
+│   │   ├── HamburgerMenu.tsx
+│   │   ├── ChatPanel.tsx
+│   │   ├── AgentInspector.tsx
+│   │   └── CmdInput.tsx
+│   └── cmd/
+│       ├── AddAgentForm.tsx
+│       └── AgentList.tsx
+├── lib/
+│   ├── store.ts               # Zustand store (agents, chat, world)
+│   ├── mockSimulation.ts      # Tick loop mock (backend kelguncha)
+│   └── types.ts               # Agent, Message, State types
+promptforyou.md                # Keyingi agent uchun backend spec
+```
 
-- Files touched: `src/lib/mockSimulation.ts`, `src/lib/store.ts` (add `activity` + `plan` fields to Agent), `src/lib/types.ts` (new types), `src/components/world/World3D.tsx`, `src/components/world/Bernabeu.tsx` (new), `src/routes/index.tsx`, `src/components/ui/ClockHUD.tsx` (minimap + audio button, or new `Minimap.tsx`).
-- No backend changes. No new dependencies (uses existing three / drei / zustand).
-- Mobile detection lives in existing `src/hooks/use-mobile.tsx` — reuse, don't duplicate.
+---
+
+## Performance kafolat
+- Instanced rendering (desks, houses, trees)
+- Frustum culling (drei default)
+- Suspense + lazy load
+- Shadows faqat asosiy agentlarga
+- Max 50 agent MVP uchun, keyin scaling
+
+---
+
+## Nima QILINMAYDI (bu bosqichda)
+- Real backend persistence (mock in-memory)
+- Real LLM API calls (placeholder replies)
+- Real NavMesh pathfinding (linear interpolation MVP)
+- Skeletal animatsiya (procedural movement)
+- OAuth/auth (public MVP)
+
+Bularning hammasi `promptforyou.md` ichida keyingi agent uchun aniq belgilanadi.
+
+---
+
+**Tasdiqlasangiz** — 3D dunyo, hamburger UI, cmd panel va mock simulyatsiyani quraman + `promptforyou.md` yozaman. Backend'ga o'tsak, o'sha faylni keyingi agentga beramiz.
