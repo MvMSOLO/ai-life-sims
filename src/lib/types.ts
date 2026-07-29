@@ -11,7 +11,9 @@ export type AgentState =
   | "AT_CAFE"
   | "COMMUTING_CAFE"
   | "AT_PARK"
-  | "COMMUTING_PARK";
+  | "COMMUTING_PARK"
+  | "AT_STADIUM"
+  | "COMMUTING_STADIUM";
 
 export type Trait = "impatient" | "friendly" | "quiet" | "energetic" | "sarcastic";
 

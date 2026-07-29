@@ -14,10 +14,20 @@ export const WORLD = {
   cafeCenter: [8, 0, -12] as [number, number, number],
   parkCenter: [-8, 0, -14] as [number, number, number],
   bankCenter: [18, 0, -12] as [number, number, number],
+  stadiumCenter: [0, 0, 30] as [number, number, number],
+  stadiumEntry: [0, 0, 18] as [number, number, number],
   roadY: 0.05,
   roadSpawn: [-45, 0, 4] as [number, number, number],
   roadEnd: [45, 0, 4] as [number, number, number],
 };
+
+export function stadiumSeatPosition(index: number): [number, number, number] {
+  const [cx, , cz] = [0, 0, 30] as [number, number, number];
+  // Ring of seats around the pitch
+  const angle = (index * 47) * (Math.PI / 180);
+  const r = 10;
+  return [cx + Math.cos(angle) * r, 0.8, cz + Math.sin(angle) * r];
+}
 
 export function deskPosition(index: number): [number, number, number] {
   const cols = 4;
